@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { formatDistanceStrict, differenceInYears, differenceInMonths, differenceInDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { motion } from 'framer-motion'
 import { Heart } from 'lucide-react'
