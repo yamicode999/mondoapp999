@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { formatDistanceStrict, differenceInYears, differenceInMonths, differenceInDays } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { motion } from 'framer-motion'
 import { Heart } from 'lucide-react'
 import Lottie from 'lottie-react'
@@ -147,60 +149,60 @@ export const BeenTogether = () => {
     loadCatAnimation(randomNum, side)
   }
 
-  useEffect(() => {
-    const startDate = new Date('2023-07-20T00:00:00+09:00'); // Tokyo time
-  
-    const calculateTimeElapsed = () => {
-      // Get the current time in UTC
-      const now = new Date();
-  
-      // Convert `now` to Tokyo time
-      const tokyoNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
-  
-      // Calculate the difference in milliseconds between Tokyo time and the start date
-      const timeDiff = tokyoNow.getTime() - startDate.getTime();
-      
-      let years, months, days, hours, minutes, seconds;
-  
-      // Check if at least one full day has passed
-      if (timeDiff >= 24 * 60 * 60 * 1000) { // 24 hours in milliseconds
-        years = tokyoNow.getFullYear() - startDate.getFullYear();
-        months = tokyoNow.getMonth() - startDate.getMonth();
-        days = tokyoNow.getDate() - startDate.getDate();
-  
-        // Subtract one day to count only full days then add it back
-        days = days - 1 + 1; // This effectively does nothing but conceptually adds back the subtracted day
-  
-        // Adjust for negative days by moving to the previous month/year if necessary
-        if (days < 0) {
-          months--;
-          const lastMonth = new Date(tokyoNow.getFullYear(), tokyoNow.getMonth(), 0); // Last day of the previous month
-          days = lastMonth.getDate() + days;
-        }
-        if (months < 0) {
-          years--;
-          months += 12;
-        }
-      } else {
-        // If less than a day has passed, set all to zero except for hours, minutes, and seconds
-        years = 0;
-        months = 0;
-        days = 0;
+useEffect(() => {
+  // Convert start date to Tokyo time
+  const startDate = new Date('2023-07-20T00:00:00+09:00');
+  const startInTokyo = toZonedTime(startDate, 'Asia/Tokyo');
+
+  const calculateTimeElapsed = () => {
+    // Get the current time in UTC, then convert to Tokyo time
+    const now = new Date();
+    const tokyoNow = toZonedTime(now, 'Asia/Tokyo');
+
+    // Calculate the difference in milliseconds between the two Tokyo times
+    const timeDiff = tokyoNow.getTime() - startInTokyo.getTime();
+    
+    let years, months, days, hours, minutes, seconds;
+
+    // Check if at least one full day has passed
+    if (timeDiff >= 24 * 60 * 60 * 1000) { // 24 hours in milliseconds
+      years = tokyoNow.getFullYear() - startInTokyo.getFullYear();
+      months = tokyoNow.getMonth() - startInTokyo.getMonth();
+      days = tokyoNow.getDate() - startInTokyo.getDate();
+
+      // Subtract one day to count only full days then add it back
+      days = days - 1 + 1; // This effectively does nothing but conceptually adds back the subtracted day
+
+      // Adjust for negative days by moving to the previous month/year if necessary
+      if (days < 0) {
+        months--;
+        const lastMonth = new Date(tokyoNow.getFullYear(), tokyoNow.getMonth(), 0); // Last day of the previous month
+        days = lastMonth.getDate() + days;
       }
-  
-      // Extract the time components
-      hours = tokyoNow.getHours();
-      minutes = tokyoNow.getMinutes();
-      seconds = tokyoNow.getSeconds();
-  
-      setTimeElapsed({ years, months, days, hours, minutes, seconds });
-    };
-  
-    calculateTimeElapsed();
-    const timer = setInterval(calculateTimeElapsed, 1000);
-  
-    return () => clearInterval(timer);
-  }, []);
+      if (months < 0) {
+        years--;
+        months += 12;
+      }
+    } else {
+      // If less than a day has passed, set all to zero except for hours, minutes, and seconds
+      years = 0;
+      months = 0;
+      days = 0;
+    }
+
+    // Extract the time components from tokyoNow
+    hours = tokyoNow.getHours();
+    minutes = tokyoNow.getMinutes();
+    seconds = tokyoNow.getSeconds();
+
+    setTimeElapsed({ years, months, days, hours, minutes, seconds });
+  };
+
+  calculateTimeElapsed();
+  const timer = setInterval(calculateTimeElapsed, 1000);
+
+  return () => clearInterval(timer);
+}, []);
 
   return (
     <div className="max-w-3xl mx-auto h-full flex items-center px-2 sm:px-4">
