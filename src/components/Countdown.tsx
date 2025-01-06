@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toZonedTime } from 'date-fns-tz';
 import { motion } from 'framer-motion'
 
 interface TimeLeft {
@@ -21,77 +22,78 @@ export function Countdown() {
   })
   const [isCountingForward, setIsCountingForward] = useState(false)
 
-  useEffect(() => {
-    const targetDate = new Date('2025-07-01T00:00:00+09:00'); // Tokyo time
-  
-    const calculateTime = () => {
-      const now = new Date();
-      const tokyoNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
-  
-      const isCountingDown = tokyoNow < targetDate;
-      setIsCountingForward(!isCountingDown);
-  
-      let years, months, days, hours, minutes, seconds;
-  
-      if (isCountingDown) {
-        // Counting Down Mode (Target Date in the Future)
-        const timeDiff = targetDate.getTime() - tokyoNow.getTime();
-        days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-        hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-        seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+useEffect(() => {
+  const targetDate = new Date('2025-07-01T00:00:00+09:00'); // Original date in Tokyo time
+  const targetInTokyo = toZonedTime(targetDate, 'Asia/Tokyo');
+
+  const calculateTime = () => {
+    const now = new Date();
+    const tokyoNow = toZonedTime(now, 'Asia/Tokyo');
+
+    const isCountingDown = tokyoNow < targetInTokyo;
+    setIsCountingForward(!isCountingDown);
+
+    let years, months, days, hours, minutes, seconds;
+
+    if (isCountingDown) {
+      // Counting Down Mode (Target Date in the Future)
+      const timeDiff = targetInTokyo.getTime() - tokyoNow.getTime();
+      days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+      hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+      seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+      years = 0;
+      months = 0;
+    } else {
+      // Counting Forward Mode (Target Date Passed)
+      const timeDiff = tokyoNow.getTime() - targetInTokyo.getTime();
+      
+      // Check if at least one full day has passed
+      if (timeDiff >= 24 * 60 * 60 * 1000) { // 24 hours in milliseconds
+        years = tokyoNow.getFullYear() - targetInTokyo.getFullYear();
+        months = tokyoNow.getMonth() - targetInTokyo.getMonth();
+        days = tokyoNow.getDate() - targetInTokyo.getDate();
+        
+        // Subtract one day to count only full days then add it back
+        days = days - 1 + 1;
+
+        // Adjust for negative days by moving to the previous month/year if necessary
+        if (days < 0) {
+          months--;
+          const lastMonth = new Date(tokyoNow.getFullYear(), tokyoNow.getMonth(), 0);
+          days = lastMonth.getDate() + days;
+        }
+        if (months < 0) {
+          years--;
+          months += 12;
+        }
+      } else {
+        // If less than a day has passed, set all to zero except for hours, minutes, and seconds
         years = 0;
         months = 0;
-      } else {
-        // Counting Forward Mode (Target Date Passed)
-        const timeDiff = tokyoNow.getTime() - targetDate.getTime();
-        
-        // Check if at least one full day has passed
-        if (timeDiff >= 24 * 60 * 60 * 1000) { // 24 hours in milliseconds
-          years = tokyoNow.getFullYear() - targetDate.getFullYear();
-          months = tokyoNow.getMonth() - targetDate.getMonth();
-          days = tokyoNow.getDate() - targetDate.getDate();
-          
-          // Subtract one day to count only full days
-          days = days - 1 + 1;
-  
-          // Adjust for negative days by moving to the previous month/year if necessary
-          if (days < 0) {
-            months--;
-            const lastMonth = new Date(tokyoNow.getFullYear(), tokyoNow.getMonth(), 0);
-            days = lastMonth.getDate() + days;
-          }
-          if (months < 0) {
-            years--;
-            months += 12;
-          }
-        } else {
-          // If less than a day has passed, set all to zero except for hours, minutes, and seconds
-          years = 0;
-          months = 0;
-          days = 0;
-        }
-  
-        hours = tokyoNow.getHours();
-        minutes = tokyoNow.getMinutes();
-        seconds = tokyoNow.getSeconds();
+        days = 0;
       }
-  
-      setTimeLeft({ 
-        years: years || 0,
-        months: months || 0,
-        days: days || 0,
-        hours: hours || 0,
-        minutes: minutes || 0,
-        seconds: seconds || 0
-      });
-    };
-  
-    calculateTime();
-    const timer = setInterval(calculateTime, 1000);
-  
-    return () => clearInterval(timer);
-  }, []);                
+
+      hours = tokyoNow.getHours();
+      minutes = tokyoNow.getMinutes();
+      seconds = tokyoNow.getSeconds();
+    }
+
+    setTimeLeft({ 
+      years: years || 0,
+      months: months || 0,
+      days: days || 0,
+      hours: hours || 0,
+      minutes: minutes || 0,
+      seconds: seconds || 0
+    });
+  };
+
+  calculateTime();
+  const timer = setInterval(calculateTime, 1000);
+
+  return () => clearInterval(timer);
+}, []);                
 
   const timeBlocks = isCountingForward
     ? [
