@@ -169,9 +169,6 @@ useEffect(() => {
       months = tokyoNow.getMonth() - startInTokyo.getMonth();
       days = tokyoNow.getDate() - startInTokyo.getDate();
 
-      // Subtract one day to count only full days then add it back
-      days = days - 1 + 1; // This effectively does nothing but conceptually adds back the subtracted day
-
       // Adjust for negative days by moving to the previous month/year if necessary
       if (days < 0) {
         months--;
