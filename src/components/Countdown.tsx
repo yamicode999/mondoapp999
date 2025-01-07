@@ -21,6 +21,7 @@ export function Countdown() {
     seconds: 0
   })
   const [isCountingForward, setIsCountingForward] = useState(false)
+  const [isOverMonth, setIsOverMonth] = useState(false)
 
 useEffect(() => {
   const targetDate = new Date('2025-07-01T00:00:00+09:00'); // Original date in Tokyo time
@@ -38,26 +39,74 @@ useEffect(() => {
     if (isCountingDown) {
       // Counting Down Mode (Target Date in the Future)
       const timeDiff = targetInTokyo.getTime() - tokyoNow.getTime();
-      days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-      hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-      seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-      years = 0;
-      months = 0;
+      const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+      
+      // If more than 31 days, definitely over a month
+      if (daysDiff > 31) {
+        setIsOverMonth(true);
+        
+        // Calculate dates for month difference
+        const tempDate = new Date(tokyoNow.getTime() + timeDiff);
+        years = tempDate.getFullYear() - tokyoNow.getFullYear();
+        months = tempDate.getMonth() - tokyoNow.getMonth();
+        
+        // Get the last day of current month
+        const currentMonthLastDay = new Date(tokyoNow.getFullYear(), tokyoNow.getMonth() + 1, 0).getDate();
+        
+        // Calculate days considering month end
+        if (tempDate.getDate() >= tokyoNow.getDate()) {
+          days = tempDate.getDate() - tokyoNow.getDate();
+        } else {
+          months--;
+          if (months < 0) {
+            years--;
+            months += 12;
+          }
+          days = currentMonthLastDay - tokyoNow.getDate() + tempDate.getDate();
+        }
+        
+        // Calculate time components
+        hours = tempDate.getHours() - tokyoNow.getHours();
+        minutes = tempDate.getMinutes() - tokyoNow.getMinutes();
+        seconds = tempDate.getSeconds() - tokyoNow.getSeconds();
+
+        // Handle negative time components
+        if (seconds < 0) {
+          minutes--;
+          seconds += 60;
+        }
+        if (minutes < 0) {
+          hours--;
+          minutes += 60;
+        }
+        if (hours < 0) {
+          if (days > 0) {
+            days--;
+            hours += 24;
+          } else if (months > 0) {
+            months--;
+            days = currentMonthLastDay - 1;
+            hours += 24;
+          }
+        }
+      } else {
+        setIsOverMonth(false);
+        days = daysDiff;
+        hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+        seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+        years = 0;
+        months = 0;
+      }
     } else {
       // Counting Forward Mode (Target Date Passed)
       const timeDiff = tokyoNow.getTime() - targetInTokyo.getTime();
       
-      // Check if at least one full day has passed
-      if (timeDiff >= 24 * 60 * 60 * 1000) { // 24 hours in milliseconds
+      if (timeDiff >= 24 * 60 * 60 * 1000) {
         years = tokyoNow.getFullYear() - targetInTokyo.getFullYear();
         months = tokyoNow.getMonth() - targetInTokyo.getMonth();
         days = tokyoNow.getDate() - targetInTokyo.getDate();
         
-        // Subtract one day to count only full days then add it back
-        days = days - 1 + 1;
-
-        // Adjust for negative days by moving to the previous month/year if necessary
         if (days < 0) {
           months--;
           const lastMonth = new Date(tokyoNow.getFullYear(), tokyoNow.getMonth(), 0);
@@ -68,7 +117,6 @@ useEffect(() => {
           months += 12;
         }
       } else {
-        // If less than a day has passed, set all to zero except for hours, minutes, and seconds
         years = 0;
         months = 0;
         days = 0;
@@ -103,6 +151,13 @@ useEffect(() => {
         { label: 'Hours', value: timeLeft.hours },
         { label: 'Minutes', value: timeLeft.minutes },
         { label: 'Seconds', value: timeLeft.seconds }
+      ]
+    : isOverMonth
+    ? [
+        { label: 'Months', value: timeLeft.months },
+        { label: 'Days', value: timeLeft.days },
+        { label: 'Hours', value: timeLeft.hours },
+        { label: 'Minutes', value: timeLeft.minutes }
       ]
     : [
         { label: 'Days', value: timeLeft.days },
@@ -152,4 +207,4 @@ useEffect(() => {
       ))}
     </div>
   )
-} 
+}
